@@ -38,4 +38,4 @@ for pid in ids:
         break
 
 print('启动新进程.')
-system('nohup node main.js >/dev/null 2>&1 &')
+system('nohup node server/index.js >/dev/null 2>&1 &')
