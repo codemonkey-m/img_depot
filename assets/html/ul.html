@@ -1,0 +1,253 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <title id='title'>上传</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <script src="../js/jquery.min.js"></script>
+    <script src="../js/jquery.cookie.min.js"></script>
+    <script src="../js/jqthumb.min.js"></script>
+    <script src="../js/cfg.js"></script>
+
+    <style>
+        .input_line {
+            width: 378px;
+            padding: 0 10px;
+            height: 38px;
+            border: 1px solid #b3b3b3
+        }
+
+        .input_line[disabled] {
+            background: #efefef
+        }
+
+        .btn {
+            display: inline-block;
+            border-radius: 6px;
+            background-color: #f4511e;
+            border: none;
+            color: #FFFFFF;
+            text-align: center;
+            font-size: 18px;
+            padding: 1px;
+            width: 112px;
+            height: 38px;
+            line-height: 38px;
+            transition: all 0.5s;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            background: #5599FF;
+        }
+
+        .in_f {
+            display: inline-block;
+            width: 112px;
+            height: 38px;
+            line-height: 38px;
+            text-align: center;
+            background: #f4511e;
+            color: #FFFFFF;
+            font-size: 18px;
+            border-radius: 6px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            vertical-align: bottom;
+            transition: all 0.5s;
+            margin-bottom: 1px;
+        }
+
+        .in_f input {
+            position: absolute;
+            font-size: 30px;
+            right: 0;
+            top: 0;
+            opacity: 0;
+            filter: alpha(opacity=0);
+            cursor: pointer
+        }
+
+        .in_f:hover {
+            background: #5599FF;
+        }
+
+        .thumb {
+            width: 200px;
+            margin: 0 auto;
+            border: 1px solid red;
+        }
+    </style>
+</head>
+
+<body>
+    <h4>
+        <a href="../../" style="color: #f4511e;">
+            返回主页
+        </a>
+    </h4>
+
+    <div style="text-align:center; margin-top:20%">
+        <div id="token" style="display: none;">
+            <h3>请验证</h3>
+            <input type="password" class='input_line' id='in_token'>
+            <a onclick="check_token()" class='btn'>确认</a>
+        </div>
+
+        <div id="upload" style="display: none;">
+            <!-- <input type="text" disabled value="" class='input_line' id="show_file"> -->
+            <img id='show_file' style="width: 30%; height: 30%;"></img>
+            <img id='thumb' style="width: 30%; height: 30%;"></img>
+            <br>
+            <a href="javascript:;" class="in_f" onchange="choose_img()"><input type="file" id='input_file'>选择图片</a>
+            <br><br><br>
+            <a onclick="upload()" class="btn">上传</a>
+        </div>
+    </div>
+</body>
+
+<script>
+    function page_check() {
+        var ul_token = $.cookie('ul_token')
+        if (ul_token == null)
+            $("#token").show()
+        else {
+            //先去服务器验证token的正确性,不正确的话清空掉
+            check_token(ul_token)
+        }
+    }
+
+    function check_token(ul_token) {
+        if (ul_token == null) {
+            var ul_token = $("#in_token").val()
+            if (ul_token.length <= 5)
+                return alert('请输入大于5个字符')
+        }
+
+        //查询token
+        $.get(url + 'check?ut=' + ul_token, function (data, status) {
+            var ret = JSON.parse(data)
+            if (ret.hasOwnProperty('msg'))
+                alert(ret.msg)
+
+            if (ret.code == 0) {
+                $.removeCookie('ul_token')
+                $("#token").show()
+                $("#upload").hide()
+                return
+            }
+
+            //延长有效期
+            $.cookie('ul_token', ul_token, { expires: 7, path: '/' });
+
+            $("#token").hide()
+            $("#upload").show()
+        })
+    }
+
+    function choose_img() {
+        var file = $("#input_file")[0].files[0]
+        if (file == null) {
+            alert('还没选择图片')
+            return null
+        }
+
+        if (file.type.indexOf('image') == -1) {
+            alert("仅支持图片!")
+            $("#input_file").val("")
+            $("#show_file").attr("src", '')
+            return null
+        }
+
+        console.log('文件: ' + file.name + '<br>' +
+            '大小: ' + file.size + '<br>' +
+            '修改: ' + file.lastModifiedDate +
+            '<br>' + '文件类型')
+
+        $("#show_file").attr("src", URL.createObjectURL(file))
+        return file
+    }
+
+    function upload() {
+        var file = choose_img()
+        if (file == null)
+            return
+
+        var reader = new FileReader()
+        reader.onload = function (e) {
+            var IMG = new Image()
+            IMG.onload = function () {
+                var canvas = document.createElement('canvas')
+                var ctx = canvas.getContext('2d')
+
+                var w = this.naturalWidth
+                var h = this.naturalHeight
+                while (true) {
+                    if (w < 500 || h < 500)
+                        break
+
+                    w = w * 0.9
+                    h = h * 0.9
+                }
+
+                canvas.width = w
+                canvas.height = h
+                ctx.drawImage(IMG, 0, 0, w, h)
+
+                var b64 = canvas.toDataURL('image/' + file.type.split('/')[1], 1)
+                $('#thumb').attr("src", b64)
+
+                $.post(`${url}upload?ut=${$.cookie('ul_token')}`, { img: e.target.result, thumb: b64 }, function (data, status) {
+                    var ret = JSON.parse(data)
+                    if (ret.hasOwnProperty('msg'))
+                        alert(ret.msg)
+
+                    if (ret.code == 0) {
+                        $.removeCookie('ul_token')
+                        $("#token").show()
+                        $("#upload").hide()
+                        return
+                    }
+
+                    $("#token").hide()
+                    $("#upload").show()
+
+                    $("#show_file").val("")
+                    $("#input_file").val("")
+                })
+            }
+
+            IMG.src = e.target.result
+        }
+
+        reader.readAsDataURL(file)
+
+
+        // $('#show_file').jqthumb({
+        //     classname: 'thumb',   // 生成缩略图的 div 类名. 默认是 jqthumb
+        //     width: '100',             // 剪裁后新图片的宽度. 默认是 100px.
+        //     height: '100',             // 剪裁后新图片的高度. 默认是 100px.
+        //     position: {
+        //         x: '50%',                   // 图片 x 方向的位置. 默认 50%. 50% 的意思是图片横向的中心.
+        //         y: '50%'                    // 图片 Y 方向的位置. 默认 50%. 50% 的意思是图片纵向的中心.
+        //     },
+        //     source: 'src',              // 图像资源的属性. 默认 src.
+        //     show: false,              // TRUE = 处理后立即显示. FALSE = do not show it. DEFAULT IS TRUE.
+        //     responsive: 20,                 // 只在旧的浏览器中使用. 0 to disable. DEFAULT IS 20
+        //     zoom: 1,                  // 放大倍数, 2 图片实际大小的2倍. DEFAULT IS 1
+        //     method: 'native',             // 3 methods available: "auto", "modern" and "native". DEFAULT IS auto
+        //     done: function (imgArray) { // 所有图片都剪裁后的回调函数
+        //         for (i in imgArray) {
+        //             $(imgArray[i]).fadeIn()
+        //             console.log(imgArray[i])
+        //         }
+        //     }
+        // })
+    }
+
+    page_check()
+</script>
+
+</html>

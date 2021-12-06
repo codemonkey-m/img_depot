@@ -1,0 +1,79 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+	<title id='title'>图集</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<link rel="stylesheet" href="assets/css/main.css" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+	<noscript>
+		<link rel="stylesheet" href="assets/css/noscript.css" />
+	</noscript>
+</head>
+
+<body class="is-preload">
+	<div id="wrapper">
+		<header id="header">
+			<ul>
+				<li>
+					<a href="javascript:void(0)" class="icon fa-info-circle" onclick="turn_page(-1)">上一页</a>
+					<a href="javascript:void(0)" class="icon fa-info-circle" onclick="turn_page(1)">下一页</a>
+				</li>
+			</ul>
+			<nav>
+				<ul>
+					<li><a href="assets/html/ul.html" class="icon solid fa-info-circle">上传</a></li>
+				</ul>
+			</nav>
+		</header>
+
+		<div id="main">
+		</div>
+	</div>
+
+	<script src="assets/js/jquery.min.js"></script>
+	<script src="assets/js/util.js"></script>
+	<script src="assets/js/main.js"></script>
+	<script src="assets/js/cfg.js"></script>
+	<script>
+		var imgs = null
+		var cur_page = 0
+		const page_cnt = 9
+
+		function init() {
+			$.get(url + 'imgs?', function (data, status) {
+				imgs = JSON.parse(data)
+				console.log("共读取到" + imgs.length + "张图片")
+
+				turn_page()
+			})
+		}
+
+		init()
+
+		function turn_page(i = 0) {
+			if (null == imgs)
+				return alert('尚未从服务器获取到数据.')
+
+			var main_div = $("#main")
+			main_div.empty()
+
+			cur_page += i
+
+			var b = cur_page * page_cnt
+			var n = Math.min(b + page_cnt, imgs.length)
+			for (; b < n; b++) {
+				main_div.append(`<article class="thumb"><a href="images/full/${imgs[b]}" class="image"><img src="images/thumb/${imgs[b]}" alt="" /></a></article>`)
+			}
+
+			main_init()
+			util_init()
+		}
+	</script>
+
+	<script src="assets/js/jquery.poptrox.min.js"></script>
+	<script src="assets/js/browser.min.js"></script>
+	<script src="assets/js/breakpoints.min.js"></script>
+</body>
+
+</html>
