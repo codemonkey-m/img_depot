@@ -13,7 +13,7 @@ cwd = os.getcwd()
 print('当前路径 ' + cwd)
 
 try:
-    os.read('assets/js/cfg.js', 'r')
+    open('assets/js/cfg.js', 'r')
 except Exception as e:
     server_url = raw_input('首次启动需输入服务器地址,例如: 192.168.1.222:808:\n')
     cfg = open('assets/js/cfg.js', 'w')
